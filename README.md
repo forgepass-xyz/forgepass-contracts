@@ -2,7 +2,7 @@
 
 **Soroban smart contracts powering the ForgePass Builder Passport**
 
-This repository contains all on-chain logic for ForgePass — the contracts that anchor contributor identity, store credentials, mint achievement badges, and record Trust Scores on the Stellar blockchain via Soroban.
+This repository contains all on-chain logic for ForgePass; the contracts that anchor contributor identity, store credentials, mint achievement badges, and record Trust Scores on the Stellar blockchain via Soroban.
 
 > Part of the [ForgePass](https://github.com/forgepass-xyz) open-source ecosystem.
 
@@ -16,10 +16,10 @@ Everything in this repo is designed around one principle: **only what needs to b
 
 | Contract | Purpose |
 |---|---|
-| **Passport** | The core record — a soulbound entry tied to a contributor's Stellar wallet address. Stores credential hashes, Trust Score anchors, and metadata references. |
+| **Passport** | The core record : a soulbound entry tied to a contributor's Stellar wallet address. Stores credential hashes, Trust Score anchors, and metadata references. |
 | **Soulbound NFT** | Mints non-transferable achievement badges when contributors reach milestones (e.g. first merged PR, first deployed contract, SCF grant delivered). |
 | **Trust Score Anchor** | Records versioned Trust Score snapshots on-chain so any third-party contract or project can read a contributor's credibility without depending on ForgePass infrastructure. |
-| **Credential Storage** | Stores verified credential proofs — links between off-chain activity (GitHub PRs, bounty completions, escrow milestones) and their on-chain attestation. |
+| **Credential Storage** | Stores verified credential proofs : links between off-chain activity (GitHub PRs, bounty completions, escrow milestones) and their on-chain attestation. |
 
 ---
 
