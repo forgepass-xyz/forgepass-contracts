@@ -1,0 +1,62 @@
+name: Good First Issue
+description: A well-scoped issue suitable for first-time contributors to forgepass-contracts
+title: "chore: "
+labels: ["good-first-issue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue is marked as a good first issue. It is well-scoped, has clear acceptance criteria,
+        and links to all the relevant code and documentation you need to get started.
+        Comment below to let us know you are working on it.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear, unambiguous description of what needs to be done.
+    validations:
+      required: true
+
+  - type: textarea
+    id: relevant-code
+    attributes:
+      label: Relevant Code
+      description: Links to the specific files, functions, or modules this issue touches.
+      placeholder: |
+        - contracts/passport/src/lib.rs
+        - contracts/ARCHITECTURE.md
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Specific, testable criteria. The issue is done when all of these pass.
+      placeholder: |
+        - Given...when...then...
+        - All four CI checks pass
+    validations:
+      required: true
+
+  - type: textarea
+    id: resources
+    attributes:
+      label: Helpful Resources
+      description: Links to documentation, FRD sections, or prior art that will help.
+      placeholder: |
+        - ARCHITECTURE.md
+        - Soroban SDK docs
+        - FRD Section X
+    validations:
+      required: false
+
+  - type: input
+    id: estimated-effort
+    attributes:
+      label: Estimated Effort
+      description: How long should this take for someone new to the codebase?
+      placeholder: "e.g. 2-4 hours"
+    validations:
+      required: false

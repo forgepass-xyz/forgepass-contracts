@@ -1,0 +1,60 @@
+name: Feature Request
+description: Propose a new feature or enhancement for the forgepass-contracts codebase
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing a feature. Please link to the relevant FRD requirement where possible.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? What is missing today?
+      placeholder: Currently the system cannot...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the feature you would like to see implemented.
+    validations:
+      required: true
+
+  - type: input
+    id: frd-reference
+    attributes:
+      label: FRD Reference
+      description: Which functional requirement does this relate to? (e.g. FR-02.4)
+      placeholder: FR-XX.Y
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: How will we know this feature is complete? List specific, testable criteria.
+      placeholder: |
+        - Given...when...then...
+        - Given...when...then...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative approaches you considered and why you rejected them.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context, diagrams, or references.

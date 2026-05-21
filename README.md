@@ -1,77 +1,77 @@
 # forgepass-contracts
 
-**Soroban smart contracts powering the ForgePass Builder Passport**
+> Soroban smart contracts for the ForgePass reputation and identity layer on Stellar.
 
-This repository contains all on-chain logic for ForgePass; the contracts that anchor contributor identity, store credentials, mint achievement badges, and record Trust Scores on the Stellar blockchain via Soroban.
+[![CI](https://github.com/forgepass-xyz/forgepass-contracts/actions/workflows/ci.yml/badge.svg)](https://github.com/forgepass-xyz/forgepass-contracts/actions/workflows/ci.yml)
 
-> Part of the [ForgePass](https://github.com/forgepass-xyz) open-source ecosystem.
+## What This Repo Does
 
----
+This repository contains the four on-chain Soroban contracts that form the trust layer of ForgePass. They store what must be permanent and verifiable. All business logic lives off-chain in [forgepass-core](https://github.com/forgepass-xyz/forgepass-core). The contracts enforce invariants.
 
-## What Lives Here
-
-Everything in this repo is designed around one principle: **only what needs to be verifiable lives on-chain**. Soroban stores the truth; the off-chain services in [`forgepass-api`](../forgepass-api) handle speed and computation.
-
-### Contracts
-
-| Contract | Purpose |
+| Crate | Description |
 |---|---|
-| **Passport** | The core record : a soulbound entry tied to a contributor's Stellar wallet address. Stores credential hashes, Trust Score anchors, and metadata references. |
-| **Soulbound NFT** | Mints non-transferable achievement badges when contributors reach milestones (e.g. first merged PR, first deployed contract, SCF grant delivered). |
-| **Trust Score Anchor** | Records versioned Trust Score snapshots on-chain so any third-party contract or project can read a contributor's credibility without depending on ForgePass infrastructure. |
-| **Credential Storage** | Stores verified credential proofs : links between off-chain activity (GitHub PRs, bounty completions, escrow milestones) and their on-chain attestation. |
+| `contracts/passport` | Creates and manages soulbound Builder Passport records anchored to Stellar wallet addresses |
+| `contracts/trust-score` | Stores versioned Trust Score snapshots for each contributor — readable by any on-chain integrator |
+| `contracts/soulbound-nft` | Mints non-transferable achievement badge NFTs when contributors reach defined milestones |
+| `contracts/credential-store` | Anchors cryptographic proofs of off-chain contribution events on-chain |
 
----
+## Design Principle
 
-## Key Design Decisions
+**On-chain for trust, off-chain for speed.** Soroban stores what must be permanent and verifiable. PostgreSQL and the NestJS API serve it fast.
 
-**Soulbound = contributor-owned.** Passport records cannot be transferred, altered, or revoked by ForgePass or anyone else. The contributor's wallet is the sole authority over their record.
+## Prerequisites
 
-**Non-custodial by default.** ForgePass infrastructure interacts with these contracts to write new credentials, but it cannot modify or delete existing ones. The on-chain record is permanent.
+- Rust stable toolchain
+- `wasm32-unknown-unknown` target
+- Soroban CLI (matching SDK version `22.0.7`)
 
-**Modular verification.** The credential storage contract is designed to accept new signal sources (e.g. GitLab, additional Stellar protocols) without requiring changes to the core passport contract.
-
-**Open-read.** Any Stellar project or Soroban contract can read passport data permissionlessly. No API key or ForgePass approval required for read access.
-
----
-
-## Tech Stack
-
-- **Language:** Rust
-- **Platform:** Soroban (Stellar's smart contract layer)
-- **Test network:** Stellar Testnet (Futurenet for early development)
-
----
-
-## Development Setup
-
-> Requires the [Soroban CLI](https://soroban.stellar.org/docs/getting-started/setup) and Rust toolchain with `wasm32-unknown-unknown` target.
+## Build
 
 ```bash
-# Clone the repo
-git clone https://github.com/forgepass-xyz/forgepass-contracts
-cd forgepass-contracts
+# Add the WASM build target (first time only)
+rustup target add wasm32-unknown-unknown
 
-# Build all contracts
+# Build all four contracts
 cargo build --target wasm32-unknown-unknown --release
 
-# Run tests
-cargo test
+# Confirm WASM artefacts
+ls target/wasm32-unknown-unknown/release/*.wasm
 ```
 
-Refer to the [forgepass-docs](../forgepass-docs) repository for full contract deployment guides and testnet configuration.
+## Test
 
----
+```bash
+# Tests run against the native host target — not WASM
+cargo test --all --target x86_64-unknown-linux-gnu
+```
 
-## Relationship to Other Repos
+## Lint & Format
 
-- **[`forgepass-api`](../forgepass-api)** calls these contracts to write new credentials and anchor updated Trust Scores after indexing off-chain activity.
-- **[`forgepass-sdk`](../forgepass-sdk)** wraps read calls to these contracts so third-party projects can query passport data without writing Soroban interaction code themselves.
+```bash
+cargo clippy -- -D warnings
+cargo fmt --all --check
+```
 
----
+## Architecture
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full on-chain design, Soroban storage model, credential archival strategy, and cost model.
+
+## Functional Requirements
+
+See the [ForgePass FRD v1.1](https://github.com/forgepass-xyz/forgepass-contracts/blob/main/contracts/docs/) for the complete functional requirements this repository implements.
+
+## Deployment
+
+See [contracts/DEPLOYMENT.md](./contracts/DEPLOYMENT.md) for testnet and mainnet deployment procedures.
+
+Deployed contract addresses:
+- Testnet: see [contracts/deployments/testnet.json](./contracts/deployments/testnet.json)
+- Mainnet: see [contracts/deployments/mainnet.json](./contracts/deployments/mainnet.json)
 
 ## Contributing
 
-This repository welcomes contributions from Rust and Soroban developers. Issues are labelled with `good-first-issue` for accessible entry points.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for how to submit PRs, branch naming conventions, and commit message format.
 
-All code is **MIT licensed**.
+## Licence
+
+MIT — see [LICENSE](./LICENSE)
