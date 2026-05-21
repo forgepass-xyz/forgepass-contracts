@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "contracts/passport",
+    "contracts/trust-score",
+    "contracts/soulbound-nft",
+    "contracts/credential-store",
+]
+resolver = "2"
