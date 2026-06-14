@@ -1,0 +1,298 @@
+{
+  "registry_version": "1.0",
+  "frd_reference": "FR-05-A, FR-05.1, FR-05.3, FR-05.4, FR-05.7",
+  "issue_reference": "#008",
+  "description": "ForgePass v1 milestone badge registry. Defines all badge types that BadgeService evaluates on each checkAndMint call. Covers GitHub and Soroban signals only. Bounty, grant, and Trustless Work milestone types are reserved for future versions when those signal sources are introduced.",
+  "created_at": "2026-06-14",
+  "v1_signal_types": [
+    "GITHUB_PR",
+    "SOROBAN_CONTRACT",
+    "HACKATHON"
+  ],
+  "milestones": [
+    {
+      "milestone_type": "FIRST_PR",
+      "version": "1.0",
+      "signal_type": "GITHUB_PR",
+      "name": "First Contribution",
+      "description": "Merged your first pull request into a registered Stellar ecosystem repository.",
+      "milestone_criteria": "1 merged PR (author) in a ForgePass-registered Stellar repo",
+      "cardinality": "one_time",
+      "trigger": {
+        "condition": "GITHUB_PR_COUNT_GTE",
+        "threshold": 1,
+        "filters": {
+          "state": "merged",
+          "repo_scope": "registered_stellar_repos_only",
+          "authorship": "author_only",
+          "content_type": "any"
+        },
+        "retroactive": true,
+        "duplicate_prevention_key": ["wallet_address", "milestone_type"]
+      },
+      "ipfs_metadata_fields": {
+        "name": "First Contribution",
+        "description": "Merged first pull request into a registered Stellar ecosystem repository.",
+        "milestone_criteria": "1 merged PR (author) in a ForgePass-registered Stellar repo",
+        "signal_type": "GITHUB_PR",
+        "image_concept": "Pull request icon on a Stellar-branded background with a single merged branch visual"
+      },
+      "status": "active",
+      "introduced_in_registry_version": "1.0"
+    },
+    {
+      "milestone_type": "FIRST_CONTRACT",
+      "version": "1.0",
+      "signal_type": "SOROBAN_CONTRACT",
+      "name": "First Deployment",
+      "description": "Deployed your first Soroban smart contract on Stellar.",
+      "milestone_criteria": "1 create_contract operation from ForgePass-linked Stellar wallet",
+      "cardinality": "one_time",
+      "trigger": {
+        "condition": "SOROBAN_CONTRACT_COUNT_GTE",
+        "threshold": 1,
+        "filters": {
+          "operation_type": "create_contract",
+          "wallet_scope": "forgepass_linked_wallet_only",
+          "wasm_size_floor_bytes": null,
+          "invocation_required": false
+        },
+        "retroactive": true,
+        "duplicate_prevention_key": ["wallet_address", "milestone_type"]
+      },
+      "ipfs_metadata_fields": {
+        "name": "First Deployment",
+        "description": "Deployed first Soroban smart contract on the Stellar network.",
+        "milestone_criteria": "1 create_contract operation from linked Stellar wallet",
+        "signal_type": "SOROBAN_CONTRACT",
+        "image_concept": "Soroban contract icon on a Stellar network visual with a deployment confirmation checkmark"
+      },
+      "status": "active",
+      "introduced_in_registry_version": "1.0"
+    },
+    {
+      "milestone_type": "HACKATHON_PARTICIPANT",
+      "version": "1.0",
+      "signal_type": "HACKATHON",
+      "name": "Hackathon Participant",
+      "description": "Participated in a verified Stellar ecosystem hackathon.",
+      "milestone_criteria": "Admin-verified participation in a ForgePass-registered Stellar ecosystem hackathon",
+      "cardinality": "one_per_event",
+      "trigger": {
+        "condition": "HACKATHON_CREDENTIAL_EXISTS_FOR_EVENT",
+        "threshold": 1,
+        "filters": {
+          "event_scope": "admin_registered_stellar_events_only",
+          "self_reported": false,
+          "event_id_source": "admin_assigned_slug"
+        },
+        "retroactive": true,
+        "duplicate_prevention_key": ["wallet_address", "milestone_type", "event_id"]
+      },
+      "ipfs_metadata_fields": {
+        "name": "Hackathon Participant",
+        "description": "Participated in {event_name} on {event_date}.",
+        "milestone_criteria": "Verified participation in a ForgePass-registered Stellar ecosystem hackathon",
+        "signal_type": "HACKATHON",
+        "event_id": "{event_id}",
+        "event_name": "{event_name}",
+        "event_date": "{event_date}",
+        "placement": "{placement_or_null}",
+        "image_concept": "Hackathon flag or trophy icon with event name and Stellar branding"
+      },
+      "admin_csv_schema": {
+        "columns": ["wallet_address", "event_id", "event_name", "event_date", "placement"],
+        "required": ["wallet_address", "event_id", "event_name", "event_date"],
+        "optional": ["placement"],
+        "placement_allowed_values": ["1st", "2nd", "3rd", "finalist", "participant", null]
+      },
+      "status": "active",
+      "introduced_in_registry_version": "1.0"
+    },
+    {
+      "milestone_type": "RISING_CONTRIBUTOR",
+      "version": "1.0",
+      "signal_type": "GITHUB_PR",
+      "name": "Rising Contributor",
+      "description": "Merged 10 or more pull requests into registered Stellar ecosystem repositories.",
+      "milestone_criteria": "10 merged PRs (author) in ForgePass-registered Stellar repos",
+      "cardinality": "one_time",
+      "trigger": {
+        "condition": "GITHUB_PR_COUNT_GTE",
+        "threshold": 10,
+        "filters": {
+          "state": "merged",
+          "repo_scope": "registered_stellar_repos_only",
+          "authorship": "author_only",
+          "content_type": "any"
+        },
+        "retroactive": true,
+        "duplicate_prevention_key": ["wallet_address", "milestone_type"]
+      },
+      "ipfs_metadata_fields": {
+        "name": "Rising Contributor",
+        "description": "Merged 10 or more pull requests into registered Stellar ecosystem repositories.",
+        "milestone_criteria": "10 merged PRs (author) in ForgePass-registered Stellar repos",
+        "signal_type": "GITHUB_PR",
+        "image_concept": "Upward trajectory graphic with pull request icon and Stellar branding"
+      },
+      "status": "active",
+      "introduced_in_registry_version": "1.0"
+    },
+    {
+      "milestone_type": "MULTI_REPO_CONTRIBUTOR",
+      "version": "1.0",
+      "signal_type": "GITHUB_PR",
+      "name": "Multi-Repo Contributor",
+      "description": "Merged pull requests into 3 or more distinct registered Stellar ecosystem repositories.",
+      "milestone_criteria": "1 merged PR each in 3 distinct ForgePass-registered Stellar repos",
+      "cardinality": "one_time",
+      "trigger": {
+        "condition": "GITHUB_PR_DISTINCT_REPO_COUNT_GTE",
+        "threshold": 3,
+        "filters": {
+          "state": "merged",
+          "repo_scope": "registered_stellar_repos_only",
+          "authorship": "author_only",
+          "content_type": "any",
+          "min_prs_per_repo": 1
+        },
+        "retroactive": true,
+        "duplicate_prevention_key": ["wallet_address", "milestone_type"]
+      },
+      "badgeservice_note": "Requires COUNT(DISTINCT repo_name) query on credentials table filtered by wallet_address, signal_type = GITHUB_PR, state = merged. The repo_name column must be indexed on GITHUB_PR credential rows.",
+      "ipfs_metadata_fields": {
+        "name": "Multi-Repo Contributor",
+        "description": "Merged pull requests into 3 or more distinct registered Stellar ecosystem repositories.",
+        "milestone_criteria": "1 merged PR each in 3 distinct ForgePass-registered Stellar repos",
+        "signal_type": "GITHUB_PR",
+        "image_concept": "Three interconnected nodes or repository icons representing ecosystem breadth"
+      },
+      "status": "active",
+      "introduced_in_registry_version": "1.0"
+    },
+    {
+      "milestone_type": "FIRST_SOROBAN_INVOCATION",
+      "version": "1.0",
+      "signal_type": "SOROBAN_CONTRACT",
+      "name": "First Invocation",
+      "description": "One of your deployed Soroban contracts has been called for the first time.",
+      "milestone_criteria": "At least 1 invocation on any Soroban contract deployed from linked Stellar wallet",
+      "cardinality": "one_time",
+      "trigger": {
+        "condition": "SOROBAN_CONTRACT_ANY_INVOCATION_COUNT_GTE",
+        "threshold": 1,
+        "filters": {
+          "wallet_scope": "forgepass_linked_wallet_only",
+          "caller_scope": "any",
+          "contracts_evaluated": "all_deployed_by_contributor"
+        },
+        "retroactive": true,
+        "duplicate_prevention_key": ["wallet_address", "milestone_type"]
+      },
+      "badgeservice_note": "Evaluates EXISTS (SELECT 1 FROM credentials WHERE wallet_address = $1 AND signal_type = SOROBAN_CONTRACT AND invocation_count >= 1). The invocation_count field must be refreshed on every incremental Soroban index cycle, not only on initial contract detection.",
+      "ipfs_metadata_fields": {
+        "name": "First Invocation",
+        "description": "One of your deployed Soroban contracts received its first call.",
+        "milestone_criteria": "At least 1 invocation on any Soroban contract deployed from linked Stellar wallet",
+        "signal_type": "SOROBAN_CONTRACT",
+        "image_concept": "Contract call signal icon with an activation spark visual on a Stellar background"
+      },
+      "status": "active",
+      "introduced_in_registry_version": "1.0"
+    },
+    {
+      "milestone_type": "FULL_STACK_BUILDER",
+      "version": "1.0",
+      "signal_type": ["GITHUB_PR", "SOROBAN_CONTRACT"],
+      "name": "Full-Stack Builder",
+      "description": "Contributed code to the Stellar ecosystem on GitHub and deployed a Soroban smart contract.",
+      "milestone_criteria": "1 merged PR in registered Stellar repo AND 1 deployed Soroban contract from linked wallet",
+      "cardinality": "one_time",
+      "trigger": {
+        "condition": "ALL_OF",
+        "conditions": [
+          {
+            "condition": "GITHUB_PR_COUNT_GTE",
+            "threshold": 1,
+            "filters": {
+              "state": "merged",
+              "repo_scope": "registered_stellar_repos_only",
+              "authorship": "author_only"
+            }
+          },
+          {
+            "condition": "SOROBAN_CONTRACT_COUNT_GTE",
+            "threshold": 1,
+            "filters": {
+              "operation_type": "create_contract",
+              "wallet_scope": "forgepass_linked_wallet_only"
+            }
+          }
+        ],
+        "retroactive": true,
+        "badge_state_dependency": false,
+        "duplicate_prevention_key": ["wallet_address", "milestone_type"]
+      },
+      "badgeservice_note": "Trigger is credential-based, not badge-state-based. FIRST_PR and FIRST_CONTRACT badge mint state does not gate this evaluation. All three badges may mint in the same checkAndMint pass.",
+      "ipfs_metadata_fields": {
+        "name": "Full-Stack Builder",
+        "description": "Merged a pull request into a registered Stellar repo and deployed a Soroban smart contract.",
+        "milestone_criteria": "1 merged PR in registered Stellar repo AND 1 deployed Soroban contract from linked wallet",
+        "signal_type": "GITHUB_PR + SOROBAN_CONTRACT",
+        "image_concept": "Split icon: GitHub branch on one side, Soroban contract on the other, unified Stellar background"
+      },
+      "status": "active",
+      "introduced_in_registry_version": "1.0"
+    }
+  ],
+  "reserved_future_milestones": [
+    {
+      "milestone_type": "FIRST_BOUNTY",
+      "status": "reserved",
+      "signal_type": "GRANTFOX_BOUNTY",
+      "gated_on": "#009 (FR-09-B) confirming GrantFox partnership AND R05 (GrantFox indexer) being active",
+      "description": "Reserved for when GrantFox bounty ingestion is introduced. Will trigger on first completed and paid bounty verified against Stellar Horizon escrow release.",
+      "roadmap_issue": "R05"
+    },
+    {
+      "milestone_type": "FIRST_GRANT",
+      "status": "reserved",
+      "signal_type": "SCF_GRANT",
+      "gated_on": "#009 (FR-09-B) confirming SCF partnership AND R07 (SCF grant history ingestion) being active",
+      "description": "Reserved for when SCF grant history ingestion is introduced. Will trigger on first funded SCF grant award verified via the confirmed ingestion method.",
+      "roadmap_issue": "R07"
+    },
+    {
+      "milestone_type": "FIRST_TRUSTLESS_WORK",
+      "status": "reserved",
+      "signal_type": "TRUSTLESS_WORK",
+      "gated_on": "#009 (FR-09-B) confirming Trustless Work partnership AND R06 (Trustless Work credential feed) being active",
+      "description": "Reserved for when Trustless Work milestone escrow ingestion is introduced. Will trigger on first completed and released Trustless Work escrow milestone verified on-chain.",
+      "roadmap_issue": "R06"
+    }
+  ],
+  "extensibility_model": {
+    "approach": "config_driven_with_contract_upgrade",
+    "badgeservice_trigger_logic": "BadgeService reads milestone-registry.json at startup. Adding a new milestone type to the registry and deploying updated BadgeService code is sufficient to activate new trigger logic. No contract redeployment required.",
+    "soulbound_nft_contract": "The MilestoneType enum in the soulbound_nft contract must include the new milestone_type value. This requires a WASM upgrade via update_current_contract_wasm (Soroban contract upgrade mechanism). The contract address and all existing badge records are preserved. This is an upgrade, not a redeployment.",
+    "postgresql_schema": "A new enum value must be added to the milestone_type column via a database migration before BadgeService can write badge records for the new type.",
+    "process_for_adding_new_milestone_type": [
+      "1. Confirm the signal source is active (e.g. GrantFox indexer live, SCF ingestion live)",
+      "2. Add the milestone_type entry to the milestones array in this registry file, moving it from reserved_future_milestones",
+      "3. Add the new MilestoneType enum variant to the soulbound_nft contract source",
+      "4. Upload new contract WASM and call update_current_contract_wasm to upgrade in place",
+      "5. Run a database migration to add the new milestone_type enum value",
+      "6. Deploy updated BadgeService with trigger logic for the new condition",
+      "7. Update registry_version and add a changelog entry"
+    ],
+    "screaming_snake_case_convention": "All milestone_type values use SCREAMING_SNAKE_CASE. New types must follow this convention to avoid naming conflicts."
+  },
+  "changelog": [
+    {
+      "registry_version": "1.0",
+      "date": "2026-06-14",
+      "summary": "Initial v1 registry. Seven active milestone types: FIRST_PR, FIRST_CONTRACT, HACKATHON_PARTICIPANT, RISING_CONTRIBUTOR, MULTI_REPO_CONTRIBUTOR, FIRST_SOROBAN_INVOCATION, FULL_STACK_BUILDER. Three reserved future types: FIRST_BOUNTY, FIRST_GRANT, FIRST_TRUSTLESS_WORK. Covers GitHub and Soroban signals only. Issue #008 phase-0 decision."
+    }
+  ]
+}
