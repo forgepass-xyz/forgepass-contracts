@@ -73,17 +73,6 @@ Run all four locally before pushing:
 - Address all review comments before requesting re-review
 - Squash fixup commits before merge
 
-## Project Board
- 
-All active work is tracked on the
-[ForgePass Development Board](https://github.com/orgs/forgepass-xyz/projects/2).
-New issues are auto-added to the **Backlog** column. Opening a pull request
-moves the linked issue to **In Progress**; marking the PR ready for review
-moves it to **Review**; closing the issue moves it to **Done**.
- 
-When creating an issue, set the **Phase**, **Effort**, **Repo**, and **Epic**
-custom fields on the board so the issue is correctly grouped in views and
-reports.
  
 ## Cross-Repo Issue Linking Convention
  

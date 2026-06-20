@@ -1,5 +1,4 @@
 # forgepass-contracts
-> Project board: https://github.com/orgs/forgepass-xyz/projects/2
 
 > Soroban smart contracts for the ForgePass reputation and identity layer on Stellar.
 
