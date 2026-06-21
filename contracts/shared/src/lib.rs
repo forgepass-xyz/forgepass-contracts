@@ -15,7 +15,7 @@
 
 #![no_std]
 
-use soroban_sdk::{contracttype, contracterror, Address, BytesN, String};
+use soroban_sdk::{contracterror, contracttype, Address, BytesN, String};
 
 // =============================================================================
 // Structs

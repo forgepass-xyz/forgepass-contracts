@@ -160,7 +160,11 @@ impl PassportContract {
         require_admin(&env)?;
 
         // Idempotency guard -- return 201, never panic, never overwrite. AC-3.
-        if env.storage().persistent().has(&DataKey::Passport(wallet.clone())) {
+        if env
+            .storage()
+            .persistent()
+            .has(&DataKey::Passport(wallet.clone()))
+        {
             return Err(ContractError::PassportAlreadyExists);
         }
 
@@ -186,9 +190,7 @@ impl PassportContract {
     ///
     /// ABI: INTERFACES.md Section 4, function table row 3.
     pub fn get_passport(env: Env, wallet: Address) -> Option<PassportRecord> {
-        env.storage()
-            .persistent()
-            .get(&DataKey::Passport(wallet))
+        env.storage().persistent().get(&DataKey::Passport(wallet))
     }
 
     /// Returns `true` if the wallet has a passport AND `sybil_flagged` is `false`.
@@ -255,11 +257,7 @@ impl PassportContract {
     /// Returns `PassportNotFound` (200) if no passport exists for the wallet.
     ///
     /// ABI: INTERFACES.md Section 4, function table row 6.
-    pub fn set_sybil_flag(
-        env: Env,
-        wallet: Address,
-        flagged: bool,
-    ) -> Result<(), ContractError> {
+    pub fn set_sybil_flag(env: Env, wallet: Address, flagged: bool) -> Result<(), ContractError> {
         require_admin(&env)?;
 
         let key = DataKey::Passport(wallet);
