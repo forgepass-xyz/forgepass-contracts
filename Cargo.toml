@@ -4,5 +4,6 @@ members = [
     "contracts/trust-score",
     "contracts/soulbound-nft",
     "contracts/credential-store",
+    "contracts/shared",
 ]
 resolver = "2"
