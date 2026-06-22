@@ -1,89 +1,73 @@
 name: CI
-
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
-
 env:
   CARGO_TERM_COLOR: always
   SOROBAN_SDK_VERSION: "22.0.7"
-
 jobs:
   build:
     name: Build (WASM)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
           targets: wasm32-unknown-unknown
-
       - name: Cache Cargo registry and build artefacts
         uses: Swatinem/rust-cache@v2
-
       - name: Build all crates (WASM release)
         run: cargo build --target wasm32-unknown-unknown --release
-
       - name: Confirm WASM artefacts exist
         run: |
           ls target/wasm32-unknown-unknown/release/passport.wasm
           ls target/wasm32-unknown-unknown/release/trust_score.wasm
           ls target/wasm32-unknown-unknown/release/soulbound_nft.wasm
           ls target/wasm32-unknown-unknown/release/credential_store.wasm
-
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
           targets: wasm32-unknown-unknown
-
       - name: Cache Cargo registry and build artefacts
         uses: Swatinem/rust-cache@v2
-
+      - name: Build WASM release (required for contract_spec_exhaustiveness test)
+        run: cargo build --target wasm32-unknown-unknown --release -p soulbound-nft
       - name: Run tests (native host target)
         run: cargo test --all --target x86_64-unknown-linux-gnu
-
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
           targets: wasm32-unknown-unknown
           components: clippy
-
       - name: Cache Cargo registry and build artefacts
         uses: Swatinem/rust-cache@v2
-
       - name: Run Clippy
         run: cargo clippy -- -D warnings
-
   fmt:
     name: Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
           components: rustfmt
-
       - name: Check formatting
         run: cargo fmt --all --check
