@@ -8,6 +8,9 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 soroban-sdk = { version = "22.0.11", features = ["alloc"] }
+forgepass-shared = { path = "../shared" }
 
 [dev-dependencies]
 soroban-sdk = { version = "22.0.11", features = ["alloc", "testutils"] }
+soroban-spec = "22.0.11"
+stellar-xdr = { version = "=22.1.0", features = ["curr", "std"] }
