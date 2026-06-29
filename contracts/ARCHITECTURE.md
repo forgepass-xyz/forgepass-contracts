@@ -676,50 +676,72 @@ in place.
 - **Issue #019** — credential store contract: reads Sections 3, 4, and 5 (limit, archival workflow, `ArchiveRecord` struct, Merkle design)
 - **Issue #030** — database migrations: reads Section 6 (`archived_credentials` table schema, column definitions, JSONB index requirement)
 
-## Section 7 — Soulbound NFT Contract Design Notes (#018)
 
-### 7.1 Non-transferability is an absence, not a guard
+## Section 8 -- Credential Store Contract Implementation Notes (#019)
 
-The soulbound NFT contract (`contracts/soulbound-nft`) exposes exactly five
-public functions: `initialize`, `mint`, `get_badge`, `get_badges_for_wallet`,
-`has_badge`. There is no `transfer` function, no `approve` function, and no
-function of any name that moves a `BadgeRecord` from one wallet to another.
+### 8.1 Archival is backend-controlled, not contract-triggered
 
-This was a deliberate reversal of an earlier draft of the #018 execution
-roadmap, which specified a public `transfer()` stub that returned
-`ContractError::TransferNotAllowed`. INTERFACES.md (issue #014, closed)
-settled on the stronger design: the guarantee is structural. A caller cannot
-even attempt a transfer — there is no entry point. `ContractError::TransferNotAllowed`
-(discriminant 502) remains defined in the shared error enum for documentation
-purposes, but no code path in this contract returns it.
+The original #019 execution roadmap specified an internal archive_oldest_credentials
+private function that would fire automatically inside add_credential when the live
+count reached the ceiling. This approach was superseded by INTERFACES.md (issue #014,
+closed before #019 began).
 
-The proof is `contracts/soulbound-nft/tests/contract_spec_exhaustiveness.rs`,
-which reads the compiled contract's `contractspecv0` wasm section and asserts
-the exported function set is exactly the five named above. Adding any sixth
-function fails that test immediately with an explicit message.
+The implemented design is: add_credential does not check the credential count or
+trigger archival. The backend calls get_credential_count before every add_credential
+call. If the count is 100, the backend runs the full archival workflow
+(add_archive_record then remove_credentials) before proceeding with the new write.
+The contract responsibility is storage and deduplication only -- not orchestration.
 
-### 7.2 HackathonParticipant: one badge per wallet, not one per event
+This keeps the contract simple, auditable, and free of variable-cost operations.
+Every add_credential call has predictable gas cost regardless of history depth.
 
-`contracts/badges/milestone-registry.json` (issue #008) marks
-`HACKATHON_PARTICIPANT` with `"cardinality": "one_per_event"` and a
-duplicate key of `(wallet_address, milestone_type, event_id)`.
+### 8.2 ArchiveRecordRequired (302) safety guard
 
-INTERFACES.md's storage design (`DataKey::HasBadge(Address, MilestoneType)`)
-applies uniformly to all seven active milestone types with no `event_id`
-component. The practical effect: a wallet can hold at most one
-`HackathonParticipant` badge ever, regardless of how many ForgePass-registered
-hackathons it has attended. A second hackathon credential is still recorded
-off-chain, but it produces no on-chain badge mint — `mint` returns
-`BadgeAlreadyMinted`.
+remove_credentials verifies that at least one ArchiveRecord exists for the wallet
+before deleting any live credential entries. If DataKey::ArchiveIndex(wallet) is 0
+(no archival has occurred), the function returns ContractError::ArchiveRecordRequired
+(302) and leaves the live Vec unchanged.
 
-This was confirmed as a deliberate decision during #018 (option 1, chosen
-explicitly over an event-aware composite key). The registry's per-event IPFS
-metadata fields go unused after the first hackathon mint. A future upgrade
-wanting true per-event badges would require a new event-aware DataKey variant
-and a storage migration — flagged here so it is not rediscovered as a surprise.
+This prevents a backend bug or misconfigured call sequence from silently deleting
+on-chain credentials without a corresponding Merkle root proof. The backend must call
+add_archive_record first and confirm the on-chain transaction before calling
+remove_credentials.
 
-### 7.3 Extensibility
+remove_credentials silently skips source_ids not found in the live set, making
+retries after partial failure safe.
 
-No change from INTERFACES.md Section 11. The contract never branches on
-`MilestoneType`. New variants (`FirstBounty`, `FirstGrant`,
-`FirstTrustlessWork`) require a WASM upgrade to the shared crate only.
+### 8.3 DataKey design
+
+| Key | Storage tier | Purpose |
+|---|---|---|
+| Admin | Instance | Admin address set once at initialize. Never expires with the contract. |
+| Credentials(Address) | Persistent | Vec<CredentialRecord> -- live set per wallet. At most 100 entries. |
+| CredentialCounter(Address) | Instance | Per-wallet monotonic u64 ID generator. Starts at 1, never decremented. |
+| ArchiveRecord(Address, u32) | Persistent | One entry per archival cycle per wallet. Accumulates across cycles. |
+| ArchiveIndex(Address) | Instance | Next archive_index slot for a wallet. Incremented by add_archive_record. |
+
+The credential ID counter is per-wallet (not global), consistent with INTERFACES.md
+Section 3.2. IDs are never reused after archival -- the counter is stored in instance
+storage and only ever incremented.
+
+### 8.4 SignalType extension pathway
+
+The credential store contract never branches on SignalType in any function body. It
+stores whatever variant is passed to add_credential and returns it from
+get_credentials. Appending ScfGrant, GrantfoxBounty, or TrustlessWork to the shared
+enum via WASM upgrade requires zero changes to credential store contract logic.
+
+The deduplication check in add_credential and credential_exists compares
+(signal_type, source_id) pairs using PartialEq on the SignalType enum. New variants
+are automatically supported once the WASM is upgraded.
+
+See INTERFACES.md Section 11 for the full WASM upgrade procedure.
+
+### 8.5 Windows development note
+
+On Windows with x86_64-pc-windows-msvc, cdylib builds work correctly via MSVC.
+Tests are run with: cargo test -p credential-store --target x86_64-pc-windows-msvc
+
+The .cargo/config.toml sets wasm32-unknown-unknown as the global build target so
+bare cargo test without an explicit target will fail. Always specify the native
+target explicitly.
