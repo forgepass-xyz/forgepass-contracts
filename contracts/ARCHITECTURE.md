@@ -675,3 +675,51 @@ in place.
 - **Issue #014** — contract interface design: reads Sections 3 and 4 (archival trigger, `get_credential_count`, `add_archive_record`, `remove_credentials` requirements)
 - **Issue #019** — credential store contract: reads Sections 3, 4, and 5 (limit, archival workflow, `ArchiveRecord` struct, Merkle design)
 - **Issue #030** — database migrations: reads Section 6 (`archived_credentials` table schema, column definitions, JSONB index requirement)
+
+## Section 7 — Soulbound NFT Contract Design Notes (#018)
+
+### 7.1 Non-transferability is an absence, not a guard
+
+The soulbound NFT contract (`contracts/soulbound-nft`) exposes exactly five
+public functions: `initialize`, `mint`, `get_badge`, `get_badges_for_wallet`,
+`has_badge`. There is no `transfer` function, no `approve` function, and no
+function of any name that moves a `BadgeRecord` from one wallet to another.
+
+This was a deliberate reversal of an earlier draft of the #018 execution
+roadmap, which specified a public `transfer()` stub that returned
+`ContractError::TransferNotAllowed`. INTERFACES.md (issue #014, closed)
+settled on the stronger design: the guarantee is structural. A caller cannot
+even attempt a transfer — there is no entry point. `ContractError::TransferNotAllowed`
+(discriminant 502) remains defined in the shared error enum for documentation
+purposes, but no code path in this contract returns it.
+
+The proof is `contracts/soulbound-nft/tests/contract_spec_exhaustiveness.rs`,
+which reads the compiled contract's `contractspecv0` wasm section and asserts
+the exported function set is exactly the five named above. Adding any sixth
+function fails that test immediately with an explicit message.
+
+### 7.2 HackathonParticipant: one badge per wallet, not one per event
+
+`contracts/badges/milestone-registry.json` (issue #008) marks
+`HACKATHON_PARTICIPANT` with `"cardinality": "one_per_event"` and a
+duplicate key of `(wallet_address, milestone_type, event_id)`.
+
+INTERFACES.md's storage design (`DataKey::HasBadge(Address, MilestoneType)`)
+applies uniformly to all seven active milestone types with no `event_id`
+component. The practical effect: a wallet can hold at most one
+`HackathonParticipant` badge ever, regardless of how many ForgePass-registered
+hackathons it has attended. A second hackathon credential is still recorded
+off-chain, but it produces no on-chain badge mint — `mint` returns
+`BadgeAlreadyMinted`.
+
+This was confirmed as a deliberate decision during #018 (option 1, chosen
+explicitly over an event-aware composite key). The registry's per-event IPFS
+metadata fields go unused after the first hackathon mint. A future upgrade
+wanting true per-event badges would require a new event-aware DataKey variant
+and a storage migration — flagged here so it is not rediscovered as a surprise.
+
+### 7.3 Extensibility
+
+No change from INTERFACES.md Section 11. The contract never branches on
+`MilestoneType`. New variants (`FirstBounty`, `FirstGrant`,
+`FirstTrustlessWork`) require a WASM upgrade to the shared crate only.
