@@ -31,9 +31,7 @@
 
 use soroban_sdk::{contract, contractimpl, contracttype, vec, Address, BytesN, Env, String, Vec};
 
-use forgepass_shared::{
-    ArchiveRecord, ContractError, CredentialRecord, SignalType,
-};
+use forgepass_shared::{ArchiveRecord, ContractError, CredentialRecord, SignalType};
 
 // =============================================================================
 // Storage keys
@@ -155,12 +153,7 @@ impl CredentialStoreContract {
 
         // 3. Generate credential id from per-wallet monotonic counter.
         let counter_key = DataKey::CredentialCounter(wallet.clone());
-        let id: u64 = env
-            .storage()
-            .instance()
-            .get(&counter_key)
-            .unwrap_or(0u64)
-            + 1;
+        let id: u64 = env.storage().instance().get(&counter_key).unwrap_or(0u64) + 1;
 
         // 4. Build and append the new record.
         let record = CredentialRecord {
@@ -271,11 +264,7 @@ impl CredentialStoreContract {
 
         // Read current archive_index for this wallet (starts at 0).
         let index_key = DataKey::ArchiveIndex(wallet.clone());
-        let archive_index: u32 = env
-            .storage()
-            .instance()
-            .get(&index_key)
-            .unwrap_or(0u32);
+        let archive_index: u32 = env.storage().instance().get(&index_key).unwrap_or(0u32);
 
         // Build and store the ArchiveRecord.
         let record = ArchiveRecord {
@@ -284,9 +273,10 @@ impl CredentialStoreContract {
             archived_at,
             ipfs_cid,
         };
-        env.storage()
-            .persistent()
-            .set(&DataKey::ArchiveRecord(wallet.clone(), archive_index), &record);
+        env.storage().persistent().set(
+            &DataKey::ArchiveRecord(wallet.clone(), archive_index),
+            &record,
+        );
 
         // Advance the index counter for the next archival cycle.
         env.storage()
@@ -305,11 +295,7 @@ impl CredentialStoreContract {
     /// Returns an empty Vec if no archival has occurred.
     pub fn get_archive_records(env: Env, wallet: Address) -> Vec<ArchiveRecord> {
         let index_key = DataKey::ArchiveIndex(wallet.clone());
-        let total: u32 = env
-            .storage()
-            .instance()
-            .get(&index_key)
-            .unwrap_or(0u32);
+        let total: u32 = env.storage().instance().get(&index_key).unwrap_or(0u32);
 
         let mut records: Vec<ArchiveRecord> = vec![&env];
         for i in 0..total {
@@ -350,11 +336,7 @@ impl CredentialStoreContract {
 
         // Safety guard: at least one ArchiveRecord must exist for this wallet.
         let index_key = DataKey::ArchiveIndex(wallet.clone());
-        let archive_count: u32 = env
-            .storage()
-            .instance()
-            .get(&index_key)
-            .unwrap_or(0u32);
+        let archive_count: u32 = env.storage().instance().get(&index_key).unwrap_or(0u32);
 
         if archive_count == 0 {
             return Err(ContractError::ArchiveRecordRequired);
@@ -423,7 +405,10 @@ mod tests {
             &signal_type,
             &String::from_str(env, source_id),
             &1_716_249_600u64,
-            &String::from_str(env, "a3f1c2d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"),
+            &String::from_str(
+                env,
+                "a3f1c2d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+            ),
         )
     }
 
@@ -435,7 +420,13 @@ mod tests {
         let (env, client, _admin) = setup();
         let wallet = Address::generate(&env);
 
-        let id = add_test_credential(&client, &env, &wallet, SignalType::GithubPr, "stellar/core#1");
+        let id = add_test_credential(
+            &client,
+            &env,
+            &wallet,
+            SignalType::GithubPr,
+            "stellar/core#1",
+        );
         assert_eq!(id, 1);
 
         let creds = client.get_credentials(&wallet);
@@ -456,9 +447,27 @@ mod tests {
         let (env, client, _admin) = setup();
         let wallet = Address::generate(&env);
 
-        add_test_credential(&client, &env, &wallet, SignalType::GithubPr, "stellar/core#1");
-        add_test_credential(&client, &env, &wallet, SignalType::GithubPr, "stellar/core#2");
-        add_test_credential(&client, &env, &wallet, SignalType::SorobanContract, "contract-addr-1");
+        add_test_credential(
+            &client,
+            &env,
+            &wallet,
+            SignalType::GithubPr,
+            "stellar/core#1",
+        );
+        add_test_credential(
+            &client,
+            &env,
+            &wallet,
+            SignalType::GithubPr,
+            "stellar/core#2",
+        );
+        add_test_credential(
+            &client,
+            &env,
+            &wallet,
+            SignalType::SorobanContract,
+            "contract-addr-1",
+        );
 
         assert_eq!(client.get_credential_count(&wallet), 3);
 
@@ -476,14 +485,23 @@ mod tests {
         let (env, client, _admin) = setup();
         let wallet = Address::generate(&env);
 
-        add_test_credential(&client, &env, &wallet, SignalType::GithubPr, "stellar/core#1");
+        add_test_credential(
+            &client,
+            &env,
+            &wallet,
+            SignalType::GithubPr,
+            "stellar/core#1",
+        );
 
         let result = client.try_add_credential(
             &wallet,
             &SignalType::GithubPr,
             &String::from_str(&env, "stellar/core#1"),
             &1_716_249_600u64,
-            &String::from_str(&env, "a3f1c2d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"),
+            &String::from_str(
+                &env,
+                "a3f1c2d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+            ),
         );
 
         assert_eq!(
@@ -503,8 +521,20 @@ mod tests {
         let (env, client, _admin) = setup();
         let wallet = Address::generate(&env);
 
-        let id1 = add_test_credential(&client, &env, &wallet, SignalType::GithubPr, "shared-source-id");
-        let id2 = add_test_credential(&client, &env, &wallet, SignalType::SorobanContract, "shared-source-id");
+        let id1 = add_test_credential(
+            &client,
+            &env,
+            &wallet,
+            SignalType::GithubPr,
+            "shared-source-id",
+        );
+        let id2 = add_test_credential(
+            &client,
+            &env,
+            &wallet,
+            SignalType::SorobanContract,
+            "shared-source-id",
+        );
 
         assert_eq!(id1, 1);
         assert_eq!(id2, 2);
@@ -535,7 +565,10 @@ mod tests {
             &SignalType::GithubPr,
             &String::from_str(&env, "stellar/core#1"),
             &1_716_249_600u64,
-            &String::from_str(&env, "a3f1c2d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"),
+            &String::from_str(
+                &env,
+                "a3f1c2d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+            ),
         );
     }
 
@@ -547,7 +580,13 @@ mod tests {
         let (env, client, _admin) = setup();
         let wallet = Address::generate(&env);
 
-        add_test_credential(&client, &env, &wallet, SignalType::StellarDex, "pair-xlm-usdc");
+        add_test_credential(
+            &client,
+            &env,
+            &wallet,
+            SignalType::StellarDex,
+            "pair-xlm-usdc",
+        );
 
         assert!(client.credential_exists(
             &wallet,
@@ -609,8 +648,20 @@ mod tests {
         let root1 = BytesN::from_array(&env, &[0x11u8; 32]);
         let root2 = BytesN::from_array(&env, &[0x22u8; 32]);
 
-        client.add_archive_record(&wallet, &root1, &50u32, &1_000u64, &String::from_str(&env, "CID1"));
-        client.add_archive_record(&wallet, &root2, &50u32, &2_000u64, &String::from_str(&env, "CID2"));
+        client.add_archive_record(
+            &wallet,
+            &root1,
+            &50u32,
+            &1_000u64,
+            &String::from_str(&env, "CID1"),
+        );
+        client.add_archive_record(
+            &wallet,
+            &root2,
+            &50u32,
+            &2_000u64,
+            &String::from_str(&env, "CID2"),
+        );
 
         let records = client.get_archive_records(&wallet);
         assert_eq!(records.len(), 2);
@@ -626,7 +677,13 @@ mod tests {
         let (env, client, _admin) = setup();
         let wallet = Address::generate(&env);
 
-        add_test_credential(&client, &env, &wallet, SignalType::GithubPr, "stellar/core#1");
+        add_test_credential(
+            &client,
+            &env,
+            &wallet,
+            SignalType::GithubPr,
+            "stellar/core#1",
+        );
 
         let result = client.try_remove_credentials(
             &wallet,
@@ -650,8 +707,20 @@ mod tests {
         let (env, client, _admin) = setup();
         let wallet = Address::generate(&env);
 
-        add_test_credential(&client, &env, &wallet, SignalType::GithubPr, "stellar/core#1");
-        add_test_credential(&client, &env, &wallet, SignalType::GithubPr, "stellar/core#2");
+        add_test_credential(
+            &client,
+            &env,
+            &wallet,
+            SignalType::GithubPr,
+            "stellar/core#1",
+        );
+        add_test_credential(
+            &client,
+            &env,
+            &wallet,
+            SignalType::GithubPr,
+            "stellar/core#2",
+        );
 
         // Anchor an ArchiveRecord first.
         let merkle_root = BytesN::from_array(&env, &[0xabu8; 32]);
@@ -686,7 +755,13 @@ mod tests {
         let (env, client, _admin) = setup();
         let wallet = Address::generate(&env);
 
-        add_test_credential(&client, &env, &wallet, SignalType::GithubPr, "stellar/core#1");
+        add_test_credential(
+            &client,
+            &env,
+            &wallet,
+            SignalType::GithubPr,
+            "stellar/core#1",
+        );
 
         let merkle_root = BytesN::from_array(&env, &[0xabu8; 32]);
         client.add_archive_record(
@@ -698,10 +773,7 @@ mod tests {
         );
 
         // Remove a source_id that does not exist -- must not error.
-        client.remove_credentials(
-            &wallet,
-            &vec![&env, String::from_str(&env, "never-added")],
-        );
+        client.remove_credentials(&wallet, &vec![&env, String::from_str(&env, "never-added")]);
 
         // Live set unchanged.
         assert_eq!(client.get_credential_count(&wallet), 1);
@@ -738,19 +810,49 @@ mod tests {
         let (env, client, _admin) = setup();
         let wallet = Address::generate(&env);
 
-        let id1 = add_test_credential(&client, &env, &wallet, SignalType::GithubPr, "stellar/core#1");
-        let id2 = add_test_credential(&client, &env, &wallet, SignalType::GithubPr, "stellar/core#2");
+        let id1 = add_test_credential(
+            &client,
+            &env,
+            &wallet,
+            SignalType::GithubPr,
+            "stellar/core#1",
+        );
+        let id2 = add_test_credential(
+            &client,
+            &env,
+            &wallet,
+            SignalType::GithubPr,
+            "stellar/core#2",
+        );
         assert_eq!(id1, 1);
         assert_eq!(id2, 2);
 
         // Archive and remove.
         let merkle_root = BytesN::from_array(&env, &[0xabu8; 32]);
-        client.add_archive_record(&wallet, &merkle_root, &1u32, &1_000u64, &String::from_str(&env, "QmCID"));
-        client.remove_credentials(&wallet, &vec![&env, String::from_str(&env, "stellar/core#1")]);
+        client.add_archive_record(
+            &wallet,
+            &merkle_root,
+            &1u32,
+            &1_000u64,
+            &String::from_str(&env, "QmCID"),
+        );
+        client.remove_credentials(
+            &wallet,
+            &vec![&env, String::from_str(&env, "stellar/core#1")],
+        );
 
         // New credential ID must be higher than all previously issued IDs.
-        let id3 = add_test_credential(&client, &env, &wallet, SignalType::StellarDex, "pair-xlm-usdc");
-        assert!(id3 > id2, "ID after archival/removal must exceed all prior IDs -- was {id3}, expected > {id2}");
+        let id3 = add_test_credential(
+            &client,
+            &env,
+            &wallet,
+            SignalType::StellarDex,
+            "pair-xlm-usdc",
+        );
+        assert!(
+            id3 > id2,
+            "ID after archival/removal must exceed all prior IDs -- was {id3}, expected > {id2}"
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -762,7 +864,13 @@ mod tests {
         let wallet_a = Address::generate(&env);
         let wallet_b = Address::generate(&env);
 
-        add_test_credential(&client, &env, &wallet_a, SignalType::GithubPr, "stellar/core#1");
+        add_test_credential(
+            &client,
+            &env,
+            &wallet_a,
+            SignalType::GithubPr,
+            "stellar/core#1",
+        );
 
         assert_eq!(client.get_credential_count(&wallet_a), 1);
         assert_eq!(client.get_credential_count(&wallet_b), 0);
