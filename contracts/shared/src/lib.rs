@@ -163,7 +163,7 @@ pub struct ArchiveRecord {
 ///
 /// ABI: `INTERFACES.md` Section 3.6
 #[contracttype]
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum SignalType {
     /// GitHub pull requests merged into admin-registered Stellar ecosystem repos.
     GithubPr,
