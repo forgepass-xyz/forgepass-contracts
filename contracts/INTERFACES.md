@@ -54,7 +54,7 @@ workspace-level version bump coordinated across all four contract crates.
 
 ### Workspace structure
 
-The `contracts/crates/shared/` crate is a fifth member of the Cargo workspace,
+The `contracts/shared/` crate is a fifth member of the Cargo workspace,
 added as part of issue #014. It contains:
 
 - `ContractError` enum (Section 3.8)
@@ -83,7 +83,7 @@ own `DataKey` enum to prevent cross-contract storage key collisions.
 
 ### Error model
 
-A single `ContractError` enum is defined in `contracts/crates/shared/` and imported
+A single `ContractError` enum is defined in `contracts/shared/` and imported
 by all four contract crates. Discriminants are grouped by hundreds so the originating
 contract is identifiable from error codes in NestJS logs and in Horizon transaction
 results. The `OnchainWriterService` in issue #027 requires one exhaustive match across
@@ -132,7 +132,7 @@ pub enum DataKey {
 
 ## 3. Shared Data Structures
 
-All types in this section are defined in `contracts/crates/shared/src/lib.rs` and
+All types in this section are defined in `contracts/shared/src/lib.rs` and
 re-exported for use by each of the four contract crates.
 
 ### 3.1 PassportRecord
@@ -371,7 +371,7 @@ badge record for.
 
 ### 3.8 ContractError
 
-Defined in `contracts/crates/shared/src/lib.rs`. All four contract crates import and
+Defined in `contracts/shared/src/lib.rs`. All four contract crates import and
 use this enum. Discriminants are positive `u32` values grouped by contract to make
 the originating contract identifiable from error codes in NestJS error logs.
 
@@ -425,14 +425,14 @@ pub enum ContractError {
 
 ## 4. Passport Contract (`forgepass-passport`)
 
-**Crate:** `contracts/crates/passport`
+**Crate:** `contracts/passport`
 **FRD:** FR-02.1, FR-02.2, FR-02.3, FR-02.5
 **Implementation issue:** #016
 
 ### DataKey enum
 
 ```rust
-// contracts/crates/passport/src/lib.rs
+// contracts/passport/src/lib.rs
 #[contracttype]
 pub enum DataKey {
     Admin,             // Address — stored in instance storage; set once at initialize
@@ -526,7 +526,7 @@ is always accessible.
 
 ## 5. Credential Store Contract (`forgepass-credential-store`)
 
-**Crate:** `contracts/crates/credential-store`
+**Crate:** `contracts/credential-store`
 **FRD:** FR-02.4, FR-03.8, FR-04.4
 **Implementation issue:** #019
 **Architecture reference:** `contracts/ARCHITECTURE.md` Sections 3–6
@@ -534,7 +534,7 @@ is always accessible.
 ### DataKey enum
 
 ```rust
-// contracts/crates/credential-store/src/lib.rs
+// contracts/credential-store/src/lib.rs
 #[contracttype]
 pub enum DataKey {
     Admin,                       // Address — instance; set at initialize
@@ -684,14 +684,14 @@ credential store contract change.
 
 ## 6. Trust Score Anchor Contract (`forgepass-trust-score`)
 
-**Crate:** `contracts/crates/trust-score`
+**Crate:** `contracts/trust-score`
 **FRD:** FR-02.8, FR-04.2, FR-04.4
 **Implementation issue:** #017
 
 ### DataKey enum
 
 ```rust
-// contracts/crates/trust-score/src/lib.rs
+// contracts/trust-score/src/lib.rs
 #[contracttype]
 pub enum DataKey {
     Admin,                 // Address — instance; set at initialize
@@ -775,14 +775,14 @@ range check.
 
 ## 7. Soulbound NFT Contract (`forgepass-soulbound-nft`)
 
-**Crate:** `contracts/crates/soulbound-nft`
+**Crate:** `contracts/soulbound-nft`
 **FRD:** FR-05.1, FR-05.2, FR-05.3, FR-05.4, FR-05.7
 **Implementation issue:** #018
 
 ### DataKey enum
 
 ```rust
-// contracts/crates/soulbound-nft/src/lib.rs
+// contracts/soulbound-nft/src/lib.rs
 #[contracttype]
 pub enum DataKey {
     Admin,                          // Address — instance; set at initialize
@@ -1198,7 +1198,7 @@ shared crate and the backend.
 
 | Layer | Change required |
 |---|---|
-| `contracts/crates/shared/src/lib.rs` | Append the new variant to `SignalType` (remove the `// Reserved` comment) |
+| `contracts/shared/src/lib.rs` | Append the new variant to `SignalType` (remove the `// Reserved` comment) |
 | WASM upgrade | Rebuild all four contract crates (shared is a dependency) and upgrade via `invoke_host_function` with the new WASM |
 | `contracts/INTERFACES.md` | Move the variant from Reserved to Active in Section 3.6 |
 | `forgepass-core/scoring/algorithm-v1.0.json` | Add weight entry for the new signal type |
@@ -1219,7 +1219,7 @@ the same way it stores `GithubPr`.
 
 | Layer | Change required |
 |---|---|
-| `contracts/crates/shared/src/lib.rs` | Append the new variant to `MilestoneType` (remove the `// Reserved` comment) |
+| `contracts/shared/src/lib.rs` | Append the new variant to `MilestoneType` (remove the `// Reserved` comment) |
 | `contracts/badges/milestone-registry.json` | Add the new milestone definition with name, description, signal\_type, and trigger criteria |
 | WASM upgrade | Rebuild and upgrade all four crates |
 | `contracts/INTERFACES.md` | Move the variant from Reserved to Active in Section 3.7 |

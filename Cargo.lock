@@ -1414,7 +1414,10 @@ dependencies = [
 name = "soulbound-nft"
 version = "0.1.0"
 dependencies = [
+ "forgepass-shared",
  "soroban-sdk",
+ "soroban-spec",
+ "stellar-xdr",
 ]
 
 [[package]]
