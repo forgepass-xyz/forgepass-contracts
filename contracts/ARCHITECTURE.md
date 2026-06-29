@@ -675,3 +675,73 @@ in place.
 - **Issue #014** — contract interface design: reads Sections 3 and 4 (archival trigger, `get_credential_count`, `add_archive_record`, `remove_credentials` requirements)
 - **Issue #019** — credential store contract: reads Sections 3, 4, and 5 (limit, archival workflow, `ArchiveRecord` struct, Merkle design)
 - **Issue #030** — database migrations: reads Section 6 (`archived_credentials` table schema, column definitions, JSONB index requirement)
+
+
+## Section 8 -- Credential Store Contract Implementation Notes (#019)
+
+### 8.1 Archival is backend-controlled, not contract-triggered
+
+The original #019 execution roadmap specified an internal archive_oldest_credentials
+private function that would fire automatically inside add_credential when the live
+count reached the ceiling. This approach was superseded by INTERFACES.md (issue #014,
+closed before #019 began).
+
+The implemented design is: add_credential does not check the credential count or
+trigger archival. The backend calls get_credential_count before every add_credential
+call. If the count is 100, the backend runs the full archival workflow
+(add_archive_record then remove_credentials) before proceeding with the new write.
+The contract responsibility is storage and deduplication only -- not orchestration.
+
+This keeps the contract simple, auditable, and free of variable-cost operations.
+Every add_credential call has predictable gas cost regardless of history depth.
+
+### 8.2 ArchiveRecordRequired (302) safety guard
+
+remove_credentials verifies that at least one ArchiveRecord exists for the wallet
+before deleting any live credential entries. If DataKey::ArchiveIndex(wallet) is 0
+(no archival has occurred), the function returns ContractError::ArchiveRecordRequired
+(302) and leaves the live Vec unchanged.
+
+This prevents a backend bug or misconfigured call sequence from silently deleting
+on-chain credentials without a corresponding Merkle root proof. The backend must call
+add_archive_record first and confirm the on-chain transaction before calling
+remove_credentials.
+
+remove_credentials silently skips source_ids not found in the live set, making
+retries after partial failure safe.
+
+### 8.3 DataKey design
+
+| Key | Storage tier | Purpose |
+|---|---|---|
+| Admin | Instance | Admin address set once at initialize. Never expires with the contract. |
+| Credentials(Address) | Persistent | Vec<CredentialRecord> -- live set per wallet. At most 100 entries. |
+| CredentialCounter(Address) | Instance | Per-wallet monotonic u64 ID generator. Starts at 1, never decremented. |
+| ArchiveRecord(Address, u32) | Persistent | One entry per archival cycle per wallet. Accumulates across cycles. |
+| ArchiveIndex(Address) | Instance | Next archive_index slot for a wallet. Incremented by add_archive_record. |
+
+The credential ID counter is per-wallet (not global), consistent with INTERFACES.md
+Section 3.2. IDs are never reused after archival -- the counter is stored in instance
+storage and only ever incremented.
+
+### 8.4 SignalType extension pathway
+
+The credential store contract never branches on SignalType in any function body. It
+stores whatever variant is passed to add_credential and returns it from
+get_credentials. Appending ScfGrant, GrantfoxBounty, or TrustlessWork to the shared
+enum via WASM upgrade requires zero changes to credential store contract logic.
+
+The deduplication check in add_credential and credential_exists compares
+(signal_type, source_id) pairs using PartialEq on the SignalType enum. New variants
+are automatically supported once the WASM is upgraded.
+
+See INTERFACES.md Section 11 for the full WASM upgrade procedure.
+
+### 8.5 Windows development note
+
+On Windows with x86_64-pc-windows-msvc, cdylib builds work correctly via MSVC.
+Tests are run with: cargo test -p credential-store --target x86_64-pc-windows-msvc
+
+The .cargo/config.toml sets wasm32-unknown-unknown as the global build target so
+bare cargo test without an explicit target will fail. Always specify the native
+target explicitly.
