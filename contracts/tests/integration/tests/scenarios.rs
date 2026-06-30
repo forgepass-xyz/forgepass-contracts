@@ -164,3 +164,90 @@ fn scenario_2_sybil_flagged_passport() {
         .expect("score should exist after anchor_score, despite sybil flag");
     assert_eq!(snapshot.score, 55);
 }
+
+/// Scenario 3 -- Credential Deduplication
+///
+/// `add_credential` must reject a duplicate `(signal_type, source_id)` pair
+/// with `CredentialAlreadyExists` (300), and the rejection must not disturb
+/// existing state -- even after an intervening `anchor_score` call on a
+/// different contract. Dedup is keyed per pair, not per session. See
+/// SCENARIO-SPEC.md Scenario 3.
+///
+/// Note the corrected error variant name: `CredentialAlreadyExists`, not
+/// the stale roadmap name `DuplicateCredential` (see SCENARIO-SPEC.md
+/// "Corrections from Roadmap v1.0").
+#[test]
+fn scenario_3_credential_deduplication() {
+    use forgepass_shared::ContractError;
+
+    let fixtures = setup();
+    let env = &fixtures.env;
+
+    // --- Step 1 -- create_passport ---
+    let ipfs_cid = SorobanString::from_str(env, "bafybeiscenario3");
+    fixtures
+        .passport
+        .create_passport(&fixtures.contributor, &ipfs_cid);
+
+    // --- Step 2 -- add_credential (first) ---
+    let source_id = SorobanString::from_str(
+        env,
+        "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
+    );
+    let data_hash = SorobanString::from_str(env, &"d".repeat(64));
+    let first_result = fixtures.credentials.add_credential(
+        &fixtures.contributor,
+        &SignalType::SorobanContract,
+        &source_id,
+        &1_700_002_000u64,
+        &data_hash,
+    );
+    assert!(first_result >= 1, "expected a non-zero credential id on first add");
+
+    // --- Step 3 -- anchor_score (intervening call on a different contract) ---
+    let algorithm_version = SorobanString::from_str(env, "1.0");
+    let signal_hash = SorobanString::from_str(env, &"e".repeat(64));
+    fixtures.score.anchor_score(
+        &fixtures.contributor,
+        &30u32,
+        &algorithm_version,
+        &signal_hash,
+        &1_700_002_001u64,
+    );
+
+    // --- Step 4 -- add_credential (duplicate) ---
+    // Uses try_add_credential since this call is expected to return Err,
+    // not panic.
+    let duplicate_result = fixtures.credentials.try_add_credential(
+        &fixtures.contributor,
+        &SignalType::SorobanContract,
+        &source_id,
+        &1_700_002_000u64,
+        &data_hash,
+    );
+
+    // --- A2 -- duplicate returns CredentialAlreadyExists (300) ---
+    match duplicate_result {
+        Ok(_) => panic!("expected CredentialAlreadyExists, got Ok"),
+        Err(Ok(contract_err)) => {
+            assert_eq!(
+                contract_err,
+                ContractError::CredentialAlreadyExists,
+                "expected CredentialAlreadyExists (300)"
+            );
+        }
+        Err(Err(invoke_err)) => {
+            panic!("expected a ContractError, got a host invocation error: {:?}", invoke_err);
+        }
+    }
+
+    // --- A3 -- credential count unchanged ---
+    let count = fixtures
+        .credentials
+        .get_credential_count(&fixtures.contributor);
+    assert_eq!(count, 1, "duplicate add must not change the credential count");
+
+    // --- A4 -- no duplicate entry in the live set ---
+    let credentials = fixtures.credentials.get_credentials(&fixtures.contributor);
+    assert_eq!(credentials.len(), 1, "duplicate add must not create a second entry");
+}
