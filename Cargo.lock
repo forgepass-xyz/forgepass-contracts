@@ -763,6 +763,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e04e2fd2b8188ea827b32ef11de88377086d690286ab35747ef7f9bf3ccb590"
 
 [[package]]
+name = "integration"
+version = "0.1.0"
+dependencies = [
+ "credential-store",
+ "forgepass-shared",
+ "passport",
+ "soroban-sdk",
+ "soulbound-nft",
+ "trust-score",
+]
+
+[[package]]
 name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1573,6 +1585,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 name = "trust-score"
 version = "0.1.0"
 dependencies = [
+ "forgepass-shared",
  "soroban-sdk",
 ]
 

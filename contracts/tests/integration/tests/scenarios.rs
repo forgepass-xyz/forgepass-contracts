@@ -107,3 +107,60 @@ fn scenario_1_full_passport_to_badge_flow() {
     assert_eq!(badge.badge_id, badge_id, "badge_id should match mint return value");
     assert_eq!(badge.wallet, fixtures.contributor);
 }
+
+/// Scenario 2 -- Sybil-Flagged Passport
+///
+/// Sybil flagging is a passport-contract-only state field. It does not
+/// block writes on other contracts, and the contract returns full state
+/// on read regardless of the flag value -- off-chain filtering (FR-11.1)
+/// is the API layer's responsibility, not the contract's. See
+/// SCENARIO-SPEC.md Scenario 2 for the full rationale.
+#[test]
+fn scenario_2_sybil_flagged_passport() {
+    let fixtures = setup();
+    let env = &fixtures.env;
+
+    // --- Step 1 -- create_passport ---
+    let ipfs_cid = SorobanString::from_str(env, "bafybeiscenario2");
+    fixtures
+        .passport
+        .create_passport(&fixtures.contributor, &ipfs_cid);
+
+    // --- Step 2 -- set_sybil_flag ---
+    fixtures
+        .passport
+        .set_sybil_flag(&fixtures.contributor, &true);
+
+    // --- Step 3 -- anchor_score ---
+    // No explicit Result capture needed: the panicking client method call
+    // itself is the assertion that this succeeds (A3). If sybil flagging
+    // blocked anchor_score, this line would panic and fail the test.
+    let algorithm_version = SorobanString::from_str(env, "1.0");
+    let signal_hash = SorobanString::from_str(env, &"c".repeat(64));
+    fixtures.score.anchor_score(
+        &fixtures.contributor,
+        &55u32,
+        &algorithm_version,
+        &signal_hash,
+        &1_700_001_000u64,
+    );
+
+    // --- A1 -- is_valid returns false while sybil flagged ---
+    let is_valid = fixtures.passport.is_valid(&fixtures.contributor);
+    assert!(!is_valid, "expected is_valid to be false for a sybil-flagged passport");
+
+    // --- A2 -- get_passport still returns the full record ---
+    let passport_record = fixtures
+        .passport
+        .get_passport(&fixtures.contributor)
+        .expect("passport should still be readable after sybil flag is set");
+    assert_eq!(passport_record.sybil_flagged, true);
+    assert_eq!(passport_record.wallet, fixtures.contributor);
+
+    // --- A4 -- score is readable after the flag was set ---
+    let snapshot = fixtures
+        .score
+        .get_current_score(&fixtures.contributor)
+        .expect("score should exist after anchor_score, despite sybil flag");
+    assert_eq!(snapshot.score, 55);
+}
