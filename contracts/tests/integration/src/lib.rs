@@ -11,14 +11,19 @@
 //! generating a `<Purpose>ContractClient` via `#[contractimpl]`. Confirm
 //! these names against each crate's `src/lib.rs` before the first run; if
 //! the actual struct names differ, update the imports below accordingly.
+//!
+//! No crate-level `#![cfg(test)]` here: files under `tests/` link against
+//! this crate's library build, not its unit-test build. Gating the whole
+//! module on `cfg(test)` would make `setup()` and `TestContracts` invisible
+//! to `tests/scenarios.rs`. The smoke test below is unit-test-only via its
+//! own `#[test]` attribute, which is sufficient.
 
-#![cfg(test)]
-
+use soroban_sdk::testutils::Address as _;
 use soroban_sdk::{Address, Env};
 
 use credential_store::{CredentialStoreContract, CredentialStoreContractClient};
 use passport::{PassportContract, PassportContractClient};
-use soulbound_nft::{MilestoneType, SoulboundNftContract, SoulboundNftContractClient};
+use soulbound_nft::{SoulboundNftContract, SoulboundNftContractClient};
 use trust_score::{TrustScoreContract, TrustScoreContractClient};
 
 /// Shared fixture bundle for all integration scenarios.
@@ -92,11 +97,13 @@ pub fn setup<'a>() -> TestContracts<'a> {
 /// review harness, not here).
 #[test]
 fn smoke_all_four_contracts_are_live() {
+    use forgepass_shared::MilestoneType;
+
     let fixtures = setup();
 
     // Test 1 -- passport contract is live.
     let passport_result = fixtures.passport.get_passport(&fixtures.contributor);
-    assert_eq!(passport_result, None, "expected no passport for an unused wallet");
+    assert!(passport_result.is_none(), "expected no passport for an unused wallet");
 
     // Test 2 -- credential-store contract is live.
     let count = fixtures.credentials.get_credential_count(&fixtures.contributor);
@@ -104,7 +111,7 @@ fn smoke_all_four_contracts_are_live() {
 
     // Test 3 -- trust-score contract is live.
     let current_score = fixtures.score.get_current_score(&fixtures.contributor);
-    assert_eq!(current_score, None, "expected no score for an unused wallet");
+    assert!(current_score.is_none(), "expected no score for an unused wallet");
 
     // Test 4 -- soulbound-nft contract is live.
     let has_badge = fixtures
