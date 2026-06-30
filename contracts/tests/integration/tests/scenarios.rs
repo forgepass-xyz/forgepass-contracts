@@ -251,3 +251,261 @@ fn scenario_3_credential_deduplication() {
     let credentials = fixtures.credentials.get_credentials(&fixtures.contributor);
     assert_eq!(credentials.len(), 1, "duplicate add must not create a second entry");
 }
+
+/// Scenario 4 -- Score History Accumulation
+///
+/// `anchor_score` must append to history in chronological order,
+/// `get_score_history` must return entries ascending by `computed_at`, and
+/// `get_current_score` must always reflect the most recent snapshot. See
+/// SCENARIO-SPEC.md Scenario 4. Does not exercise the 50-snapshot cap --
+/// that boundary is covered by #017's own unit tests.
+#[test]
+fn scenario_4_score_history_accumulation() {
+    let fixtures = setup();
+    let env = &fixtures.env;
+
+    // --- Step 1 -- create_passport ---
+    let ipfs_cid = SorobanString::from_str(env, "bafybeiscenario4");
+    fixtures
+        .passport
+        .create_passport(&fixtures.contributor, &ipfs_cid);
+
+    let algorithm_version = SorobanString::from_str(env, "1.0");
+
+    // --- Step 2 -- anchor_score (first) ---
+    let signal_hash_1 = SorobanString::from_str(env, &"f".repeat(64));
+    fixtures.score.anchor_score(
+        &fixtures.contributor,
+        &40u32,
+        &algorithm_version,
+        &signal_hash_1,
+        &1_700_003_000u64,
+    );
+
+    // --- Step 3 -- anchor_score (second) ---
+    let signal_hash_2 = SorobanString::from_str(env, &"g".repeat(64));
+    fixtures.score.anchor_score(
+        &fixtures.contributor,
+        &55u32,
+        &algorithm_version,
+        &signal_hash_2,
+        &1_700_003_001u64,
+    );
+
+    // --- Step 4 -- anchor_score (third) ---
+    let signal_hash_3 = SorobanString::from_str(env, &"h".repeat(64));
+    fixtures.score.anchor_score(
+        &fixtures.contributor,
+        &68u32,
+        &algorithm_version,
+        &signal_hash_3,
+        &1_700_003_002u64,
+    );
+
+    // --- A1 -- current score reflects the most recent snapshot ---
+    let current = fixtures
+        .score
+        .get_current_score(&fixtures.contributor)
+        .expect("score should exist after three anchor_score calls");
+    assert_eq!(current.score, 68);
+
+    // --- A2 -- history contains all three snapshots ---
+    let history = fixtures.score.get_score_history(&fixtures.contributor);
+    assert_eq!(history.len(), 3, "expected three accumulated snapshots");
+
+    // --- A3 -- score ordering ascending ---
+    let snapshot_0 = history.get(0).expect("history entry 0");
+    let snapshot_1 = history.get(1).expect("history entry 1");
+    let snapshot_2 = history.get(2).expect("history entry 2");
+    assert_eq!(snapshot_0.score, 40);
+    assert_eq!(snapshot_1.score, 55);
+    assert_eq!(snapshot_2.score, 68);
+
+    // --- A4 -- computed_at ordering ascending ---
+    assert_eq!(snapshot_0.computed_at, 1_700_003_000);
+    assert_eq!(snapshot_1.computed_at, 1_700_003_001);
+    assert_eq!(snapshot_2.computed_at, 1_700_003_002);
+}
+
+/// Scenario 5 -- Badge Duplicate Prevention
+///
+/// `mint` must reject a second attempt for the same `(wallet,
+/// MilestoneType)` pair with `BadgeAlreadyMinted` (500), and the rejected
+/// call must not advance the global `badge_id` counter. See
+/// SCENARIO-SPEC.md Scenario 5.
+///
+/// Note the corrected error variant name: `BadgeAlreadyMinted`, not the
+/// stale roadmap name `AlreadyMinted`.
+#[test]
+fn scenario_5_badge_duplicate_prevention() {
+    use forgepass_shared::ContractError;
+
+    let fixtures = setup();
+    let env = &fixtures.env;
+
+    // --- Step 1 -- create_passport ---
+    let ipfs_cid = SorobanString::from_str(env, "bafybeiscenario5");
+    fixtures
+        .passport
+        .create_passport(&fixtures.contributor, &ipfs_cid);
+
+    // --- Step 2 -- mint (first) ---
+    let badge_cid = SorobanString::from_str(env, "bafybeifirstprbadge");
+    let first_badge_id = fixtures.badges.mint(
+        &fixtures.contributor,
+        &MilestoneType::FirstPr,
+        &badge_cid,
+        &1_700_004_000u64,
+    );
+    assert!(first_badge_id >= 1, "expected a non-zero badge id on first mint");
+
+    // --- Step 3 -- mint (duplicate) ---
+    // Uses try_mint since this call is expected to return Err, not panic.
+    let duplicate_result = fixtures.badges.try_mint(
+        &fixtures.contributor,
+        &MilestoneType::FirstPr,
+        &badge_cid,
+        &1_700_004_000u64,
+    );
+
+    // --- A2 -- duplicate returns BadgeAlreadyMinted (500) ---
+    match duplicate_result {
+        Ok(_) => panic!("expected BadgeAlreadyMinted, got Ok"),
+        Err(Ok(contract_err)) => {
+            assert_eq!(
+                contract_err,
+                ContractError::BadgeAlreadyMinted,
+                "expected BadgeAlreadyMinted (500)"
+            );
+        }
+        Err(Err(invoke_err)) => {
+            panic!("expected a ContractError, got a host invocation error: {:?}", invoke_err);
+        }
+    }
+
+    // --- A3 -- still exactly one badge ---
+    let badges = fixtures.badges.get_badges_for_wallet(&fixtures.contributor);
+    assert_eq!(badges.len(), 1, "duplicate mint must not create a second badge");
+
+    // --- A4 -- has_badge still true ---
+    let has_badge = fixtures
+        .badges
+        .has_badge(&fixtures.contributor, &MilestoneType::FirstPr);
+    assert!(has_badge, "expected FirstPr badge to remain present");
+
+    // --- A5 -- badge_id counter did not advance on the rejected mint ---
+    // Mint a different milestone type after the rejected duplicate. If the
+    // counter had incorrectly advanced on the rejected call, this would
+    // return first_badge_id + 2 instead of first_badge_id + 1.
+    let second_badge_id = fixtures.badges.mint(
+        &fixtures.contributor,
+        &MilestoneType::FirstContract,
+        &badge_cid,
+        &1_700_004_001u64,
+    );
+    assert_eq!(
+        second_badge_id,
+        first_badge_id + 1,
+        "rejected duplicate mint must not consume a badge_id"
+    );
+}
+
+/// Scenario 6 -- Partial Failure (On-Chain Rejection)
+///
+/// Proves a credential write that commits successfully is not rolled back
+/// when a subsequent anchor_score call is rejected at the contract level.
+/// Contracts commit independently -- there is no cross-contract atomicity
+/// in Soroban. See SCENARIO-SPEC.md Scenario 6.
+///
+/// Failure mode (OQ-2, Option A -- on-chain rejection): anchor_score is
+/// called with score = 101, exceeding the valid 0-100 range, triggering
+/// ContractError::InvalidScore (400). This proves the contract boundary
+/// holds regardless of what happens to adjacent calls -- it does not test
+/// off-chain submission failure or retry-queue behaviour, which depends on
+/// OnchainWriterService (#027) and is out of scope here.
+#[test]
+fn scenario_6_partial_failure_on_chain_rejection() {
+    use forgepass_shared::ContractError;
+
+    let fixtures = setup();
+    let env = &fixtures.env;
+
+    // --- Step 1 -- create_passport ---
+    let ipfs_cid = SorobanString::from_str(env, "bafybeiscenario6");
+    fixtures
+        .passport
+        .create_passport(&fixtures.contributor, &ipfs_cid);
+
+    // --- Step 2 -- add_credential ---
+    let source_id = SorobanString::from_str(env, "stellar-org/stellar-core#5678");
+    let data_hash = SorobanString::from_str(env, &"i".repeat(64));
+    let credential_id = fixtures.credentials.add_credential(
+        &fixtures.contributor,
+        &SignalType::GithubPr,
+        &source_id,
+        &1_700_005_000u64,
+        &data_hash,
+    );
+    assert!(credential_id >= 1, "expected a non-zero credential id");
+
+    // --- Step 3 -- capture before-state ---
+    let before_credentials = fixtures.credentials.get_credentials(&fixtures.contributor);
+    let before_count = fixtures
+        .credentials
+        .get_credential_count(&fixtures.contributor);
+    assert_eq!(before_count, 1);
+    assert_eq!(before_credentials.len(), 1);
+
+    // --- Step 4 -- anchor_score (intentional failure, score = 101) ---
+    // Uses try_anchor_score since this call is expected to return Err.
+    let algorithm_version = SorobanString::from_str(env, "1.0");
+    let signal_hash = SorobanString::from_str(env, &"j".repeat(64));
+    let failure_result = fixtures.score.try_anchor_score(
+        &fixtures.contributor,
+        &101u32,
+        &algorithm_version,
+        &signal_hash,
+        &1_700_005_001u64,
+    );
+
+    // --- A2 -- anchor_score rejected with InvalidScore (400) ---
+    match failure_result {
+        Ok(_) => panic!("expected InvalidScore, got Ok"),
+        Err(Ok(contract_err)) => {
+            assert_eq!(
+                contract_err,
+                ContractError::InvalidScore,
+                "expected InvalidScore (400) for score = 101"
+            );
+        }
+        Err(Err(invoke_err)) => {
+            panic!("expected a ContractError, got a host invocation error: {:?}", invoke_err);
+        }
+    }
+
+    // --- Step 5 -- capture after-state ---
+    let after_credentials = fixtures.credentials.get_credentials(&fixtures.contributor);
+    let after_count = fixtures
+        .credentials
+        .get_credential_count(&fixtures.contributor);
+
+    // --- A3 -- count unchanged by the failed anchor call ---
+    assert_eq!(after_count, before_count, "credential count must survive the failed anchor_score call");
+    assert_eq!(after_count, 1);
+
+    // --- A4 -- credential contents unchanged ---
+    assert_eq!(after_credentials.len(), before_credentials.len());
+    let before_cred = before_credentials.get(0).expect("before credential at index 0");
+    let after_cred = after_credentials.get(0).expect("after credential at index 0");
+    assert_eq!(before_cred.id, after_cred.id);
+    assert_eq!(before_cred.source_id, after_cred.source_id);
+    assert_eq!(before_cred.data_hash, after_cred.data_hash);
+    assert_eq!(before_cred.signal_type, after_cred.signal_type);
+
+    // --- A5 -- no partial score state was written ---
+    let current_score = fixtures.score.get_current_score(&fixtures.contributor);
+    assert!(
+        current_score.is_none(),
+        "rejected anchor_score must leave no partial score record"
+    );
+}
