@@ -104,7 +104,10 @@ fn scenario_1_full_passport_to_badge_flow() {
     let badges = fixtures.badges.get_badges_for_wallet(&fixtures.contributor);
     assert_eq!(badges.len(), 1, "expected exactly one badge");
     let badge = badges.get(0).expect("badge at index 0");
-    assert_eq!(badge.badge_id, badge_id, "badge_id should match mint return value");
+    assert_eq!(
+        badge.badge_id, badge_id,
+        "badge_id should match mint return value"
+    );
     assert_eq!(badge.wallet, fixtures.contributor);
 }
 
@@ -147,7 +150,10 @@ fn scenario_2_sybil_flagged_passport() {
 
     // --- A1 -- is_valid returns false while sybil flagged ---
     let is_valid = fixtures.passport.is_valid(&fixtures.contributor);
-    assert!(!is_valid, "expected is_valid to be false for a sybil-flagged passport");
+    assert!(
+        !is_valid,
+        "expected is_valid to be false for a sybil-flagged passport"
+    );
 
     // --- A2 -- get_passport still returns the full record ---
     let passport_record = fixtures
@@ -202,7 +208,10 @@ fn scenario_3_credential_deduplication() {
         &1_700_002_000u64,
         &data_hash,
     );
-    assert!(first_result >= 1, "expected a non-zero credential id on first add");
+    assert!(
+        first_result >= 1,
+        "expected a non-zero credential id on first add"
+    );
 
     // --- Step 3 -- anchor_score (intervening call on a different contract) ---
     let algorithm_version = SorobanString::from_str(env, "1.0");
@@ -237,7 +246,10 @@ fn scenario_3_credential_deduplication() {
             );
         }
         Err(Err(invoke_err)) => {
-            panic!("expected a ContractError, got a host invocation error: {:?}", invoke_err);
+            panic!(
+                "expected a ContractError, got a host invocation error: {:?}",
+                invoke_err
+            );
         }
     }
 
@@ -245,11 +257,18 @@ fn scenario_3_credential_deduplication() {
     let count = fixtures
         .credentials
         .get_credential_count(&fixtures.contributor);
-    assert_eq!(count, 1, "duplicate add must not change the credential count");
+    assert_eq!(
+        count, 1,
+        "duplicate add must not change the credential count"
+    );
 
     // --- A4 -- no duplicate entry in the live set ---
     let credentials = fixtures.credentials.get_credentials(&fixtures.contributor);
-    assert_eq!(credentials.len(), 1, "duplicate add must not create a second entry");
+    assert_eq!(
+        credentials.len(),
+        1,
+        "duplicate add must not create a second entry"
+    );
 }
 
 /// Scenario 4 -- Score History Accumulation
@@ -357,7 +376,10 @@ fn scenario_5_badge_duplicate_prevention() {
         &badge_cid,
         &1_700_004_000u64,
     );
-    assert!(first_badge_id >= 1, "expected a non-zero badge id on first mint");
+    assert!(
+        first_badge_id >= 1,
+        "expected a non-zero badge id on first mint"
+    );
 
     // --- Step 3 -- mint (duplicate) ---
     // Uses try_mint since this call is expected to return Err, not panic.
@@ -379,13 +401,20 @@ fn scenario_5_badge_duplicate_prevention() {
             );
         }
         Err(Err(invoke_err)) => {
-            panic!("expected a ContractError, got a host invocation error: {:?}", invoke_err);
+            panic!(
+                "expected a ContractError, got a host invocation error: {:?}",
+                invoke_err
+            );
         }
     }
 
     // --- A3 -- still exactly one badge ---
     let badges = fixtures.badges.get_badges_for_wallet(&fixtures.contributor);
-    assert_eq!(badges.len(), 1, "duplicate mint must not create a second badge");
+    assert_eq!(
+        badges.len(),
+        1,
+        "duplicate mint must not create a second badge"
+    );
 
     // --- A4 -- has_badge still true ---
     let has_badge = fixtures
@@ -479,7 +508,10 @@ fn scenario_6_partial_failure_on_chain_rejection() {
             );
         }
         Err(Err(invoke_err)) => {
-            panic!("expected a ContractError, got a host invocation error: {:?}", invoke_err);
+            panic!(
+                "expected a ContractError, got a host invocation error: {:?}",
+                invoke_err
+            );
         }
     }
 
@@ -490,13 +522,20 @@ fn scenario_6_partial_failure_on_chain_rejection() {
         .get_credential_count(&fixtures.contributor);
 
     // --- A3 -- count unchanged by the failed anchor call ---
-    assert_eq!(after_count, before_count, "credential count must survive the failed anchor_score call");
+    assert_eq!(
+        after_count, before_count,
+        "credential count must survive the failed anchor_score call"
+    );
     assert_eq!(after_count, 1);
 
     // --- A4 -- credential contents unchanged ---
     assert_eq!(after_credentials.len(), before_credentials.len());
-    let before_cred = before_credentials.get(0).expect("before credential at index 0");
-    let after_cred = after_credentials.get(0).expect("after credential at index 0");
+    let before_cred = before_credentials
+        .get(0)
+        .expect("before credential at index 0");
+    let after_cred = after_credentials
+        .get(0)
+        .expect("after credential at index 0");
     assert_eq!(before_cred.id, after_cred.id);
     assert_eq!(before_cred.source_id, after_cred.source_id);
     assert_eq!(before_cred.data_hash, after_cred.data_hash);
