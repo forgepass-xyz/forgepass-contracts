@@ -5,5 +5,13 @@ members = [
     "contracts/soulbound-nft",
     "contracts/credential-store",
     "contracts/shared",
+    "contracts/tests/integration",
+]
+default-members = [
+    "contracts/passport",
+    "contracts/trust-score",
+    "contracts/soulbound-nft",
+    "contracts/credential-store",
+    "contracts/shared",
 ]
 resolver = "2"
