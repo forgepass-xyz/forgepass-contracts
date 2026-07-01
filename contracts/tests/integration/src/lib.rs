@@ -103,15 +103,23 @@ fn smoke_all_four_contracts_are_live() {
 
     // Test 1 -- passport contract is live.
     let passport_result = fixtures.passport.get_passport(&fixtures.contributor);
-    assert!(passport_result.is_none(), "expected no passport for an unused wallet");
+    assert!(
+        passport_result.is_none(),
+        "expected no passport for an unused wallet"
+    );
 
     // Test 2 -- credential-store contract is live.
-    let count = fixtures.credentials.get_credential_count(&fixtures.contributor);
+    let count = fixtures
+        .credentials
+        .get_credential_count(&fixtures.contributor);
     assert_eq!(count, 0, "expected zero credentials for an unused wallet");
 
     // Test 3 -- trust-score contract is live.
     let current_score = fixtures.score.get_current_score(&fixtures.contributor);
-    assert!(current_score.is_none(), "expected no score for an unused wallet");
+    assert!(
+        current_score.is_none(),
+        "expected no score for an unused wallet"
+    );
 
     // Test 4 -- soulbound-nft contract is live.
     let has_badge = fixtures
